@@ -64,7 +64,7 @@ with app.app_context():
     db.create_all()
     
     # Add default classes if none exist
-    if Class.query.count() == 0:
+    """if Class.query.count() == 0:
         classes = [
             ('EARLY YEARS', 'preschool'),
             ('RECEPTION', 'preschool'),
@@ -90,7 +90,7 @@ with app.app_context():
                 db.session.add(class_obj)
         
         db.session.commit()
-        print("Database tables created and classes populated")
+        print("Database tables created and classes populated")"""
 
 # Routes
 @app.route('/')
@@ -179,6 +179,60 @@ def create_student():
             'message': f'Error creating student: {str(e)}'
         }), 500
 
+@app.route('/fetch-students/<int:class_id>', methods=['GET'])
+def get_students_by_class(class_id):
+    """Fetch all students for a given class ID"""
+    try:
+        # Query students filtered by class_id
+        # Using options(joinedload()) can be more efficient if you also need class data,
+        # but for a simple list of students, a standard filter is fine.
+        students = Student.query.filter_by(class_id=class_id).all()
+
+        if not students:
+            return jsonify({
+                'success': True,
+                'message': 'No students found for this class',
+                'students': []
+            }), 200
+
+        # Format the student data for the JSON response
+        students_list = []
+        for student in students:
+            students_list.append({
+                'id': str(student.id),
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'middle_name': student.middle_name,
+                'full_name': f"{student.first_name} {student.last_name}".strip(),
+                'dob': student.dob.isoformat() if student.dob else None,
+                'gender': student.gender,
+                'email': student.email,
+                'address': student.address,
+                'parent_name': student.parent_name,
+                'parent_relationship': student.parent_relationship,
+                'parent_phone': student.parent_phone,
+                'parent_email': student.parent_email,
+                'medical_info': student.medical_info,
+                'previous_school': student.previous_school,
+                'remarks': student.remarks,
+                'created_at': student.created_at.isoformat() if student.created_at else None,
+                'updated_at': student.updated_at.isoformat() if student.updated_at else None
+            })
+
+        return jsonify({
+            'success': True,
+            'class_id': class_id,
+            'student_count': len(students_list),
+            'students': students_list
+        }), 200
+
+    except Exception as e:
+        print(f"Error fetching students for class {class_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
+    
 @app.route('/health')
 def health_check():
     """Health check endpoint for Vercel"""
